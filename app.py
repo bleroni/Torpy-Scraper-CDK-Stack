@@ -3,7 +3,7 @@ import os
 
 import aws_cdk as cdk
 
-from scraper.scraperstack_stack import ScraperstackStack
+from scraperstack.scraperstack_stack import ScraperstackStack
 
 
 app = cdk.App()
