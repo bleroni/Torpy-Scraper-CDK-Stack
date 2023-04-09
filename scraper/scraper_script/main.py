@@ -16,6 +16,7 @@ _BUCKET_ = os.environ.get('BUCKET')
 _PATH_TO_DATA_ = 'article_data.json' # s3 object key
 
 _LINK_ = 'https://www.merrjep.com/shpalljet/imobiliare-vendbanime/toke-fusha-farma/lipjan' # link to be scraped
+_PAGE_LINK_ = 'https://www.merrjep.com/shpalljet/imobiliare-vendbanime/toke-fusha-farma/lipjan?Page={}'
 _ARTICLE_LINK_ = 'https://www.merrjep.com/shpallja/imobiliare-vendbanime/toke-fusha-farma/shitet/lipjan/{}' #use .format() with the article num to get the link to an article urn
 
 logger = logging.getLogger(__name__)
@@ -24,10 +25,6 @@ f1 = '/home/ec2-user/.local/share/torpy/network_status'
 f2 = '/home/ec2-user/.local/share/torpy/dir_key_certificates'
 
 from time import sleep
-def default_evade():
-    #Catch-All method to evade detection, sleeps in between requests, 
-    sleep(2)
-
 
 class Scraper(object):
 
@@ -41,7 +38,34 @@ class Scraper(object):
         # upon instantiation, get data from s3
         self.get_data()
 
+    def check_pages(self):
+        index = 2
+        new_articles = []
+        while len(new_articles) < 2000:
+            try:
+                with tor_requests_session() as s:
+                    for i in range(index, 100):
+                        if len(new_articles) >= 2000:
+                            break
 
+                        link = _PAGE_LINK_.format(i)
+                        
+                        #find new articles and add them to new_aricles
+                        soup = BeautifulSoup(s.get(link).content, 'html.parser')
+                        #listings = soup.find('div', class_='result-content').findAll('script')
+                        #article_nums = [listing.string.split("'")[1] for listing in listings]
+                        #new_articles.extend([num for num in article_nums if num not in self.article_data])
+                        new_articles.extend([num for num in [listing.string.split("'")[1] for listing in soup.find('div', class_='result-content').findAll('script')] if num not in self.article_data])
+
+                        self.logger.debug(f"{len(new_articles)} new articles")
+                        
+            except (torpy.circuit.CellTimeoutError, requests.exceptions.ConnectTimeout):
+                # picks up where left off if failure
+                index = i
+        
+        self.send_requests(new_articles)
+            
+            
     def check_site(self):
         
         soup = BeautifulSoup(requests.get(_LINK_).content, 'html.parser')
@@ -69,38 +93,36 @@ class Scraper(object):
 
         self.send_requests(new_articles)
         
+        if len(self.article_data) < 2000:
+            self.check_pages()
+
 
     def send_requests(self, new_articles):
         #WALRUS USE CASE!! iterates through articles, constantly removing checked articles, terminates loop when articles is empty (all articles checked)
         while (articles := [article for article in new_articles if article not in self.article_data]): 
             self.logger.debug(f"articles: {articles}")
-            
-            retrys = 0
-            while retrys < 3:
-                try:
-                    with tor_requests_session() as s: # try to get as many requests as possible out of one session, loading takes considerable time
-                        self.logger.debug("Runngins")
+            try:
+                with tor_requests_session() as s: # try to get as many requests as possible out of one session, loading takes considerable time
+                    self.logger.debug("Runngins")
+                    
+                    for article in articles:
+    
+                        link = _ARTICLE_LINK_.format(article)
+                    
+                        self.logger.info(f"Trying {article}")
                         
-                        for article in articles:
+                        res = s.get(link)
+                        self.article_data[article] = get_elements(BeautifulSoup(res.content, 'html.parser'))
+                        self.logger.debug(f"{article}: {res.status_code}") # debugging
+                        
+                        if res.status_code != 200: # if connection is blocked, make new connections
+                            self.logger.debug("Session Failed... Restarting")
+                            break
         
-                            link = _ARTICLE_LINK_.format(article)
-                        
-                            self.logger.info(f"Trying {article}")
-                            
-                            res = s.get(link)
-                            self.article_data[article] = get_elements(BeautifulSoup(res.content, 'html.parser'))
-                            self.logger.debug(f"{article}: {res.status_code}") # debugging
-                         
-                            if res.status_code != 200: # if connection is blocked, make new connections
-                                self.logger.debug("Session Failed... Restarting")
-                                break
-        
-                            default_evade()
-                        
-                except (torpy.circuit.CellTimeoutError, requests.exceptions.ConnectTimeout):
-                    retrys += 1
-                    pass
+            except (torpy.circuit.CellTimeoutError, requests.exceptions.ConnectTimeout):
+                pass
       
+
     def get_data(self):
         """
         Updates class level data to stored data in s3
@@ -155,5 +177,14 @@ class Scraper(object):
             print(traceback)
         self.close()
         
-with Scraper(debug=True) as s:
-    s.check_site()
+        
+if __init__ == '__main__':
+    with Scraper(debug=True) as s:
+        s.check_site()
+    
+    ec2 = boto3.client("ec2")
+    instance_id = requests.get('http://169.254.169.254/latest/meta-data/instance-id').text
+    ec2.stop_instances(InstanceIds=[instance_id])
+    
+    # I dont think program can run this in time but maybe
+    ec2.close()

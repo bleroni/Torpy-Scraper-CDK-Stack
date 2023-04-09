@@ -59,16 +59,20 @@ class ScraperstackStack(Stack):
         )
         
         instance.connections.allow_from_any_ipv4(ec2.Port.tcp(22))
+        instance.connections.allow_from_any_ipv4(ec2.Port.tcp(443))
         bucket.grant_read_write(instance)
         
         #define lambda and hourly trigger
+        
         function = _lambda.DockerImageFunction(self, "ScraperTrigger",
                 code=_lambda.DockerImageCode.from_image_asset(
                     directory="scraper/lambda"),
                 environment = {
-                    'INSTANCE': instance.instance_id
-                }
+                    'INSTANCE': instance.instance_id,
+                },
+                timeout=Duration.seconds(30)
             )
+            
         rule = events.Rule(self, "run hourly",
                 schedule=events.Schedule.cron(minute="0",
                                             hour="*",
@@ -78,5 +82,11 @@ class ScraperstackStack(Stack):
                 )
             )
         rule.add_target(targets.LambdaFunction(function))
+        function.add_to_role_policy(iam.PolicyStatement(
+                        actions=['ssm:*',
+                                'ec2:*'],
+                        resources=['*']
+                            )
+            )
         
         
