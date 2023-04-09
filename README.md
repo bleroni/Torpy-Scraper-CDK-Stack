@@ -1,58 +1,39 @@
+# CDK Stack for Web Scraper on EC2 with Lambda Function Trigger
 
-# Welcome to your CDK Python project!
+This CDK Stack deploys a web scraper on an EC2 instance and a Lambda function that triggers the script every hour using an EventBridge trigger. The scraper script is written in Python and uses the TorPy library for anonymity.
 
-This is a blank project for CDK development with Python.
+## Scraper Script
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+The scraper script uses TorPy to create a tor-requests connection to check the main article page. It extracts the unique IDs provided by the website and uses those as the identifier in its data-store. After it finds new articles, it stores the number and visits each link through a tor connection. If the tor connection is rate limited or blocked, it will create a new tor connection. There is a minor delay between requests as to make the most out of every tor connection; new connections take time. When the scraper visits each article, it extracts elements from the page. If any of the extractions fail, it returns false in the data. Upon scraper finish, it stores its data to s3.
 
-This project is set up like a standard Python project.  The initialization
-process also creates a virtualenv within this project, stored under the `.venv`
-directory.  To create the virtualenv it assumes that there is a `python3`
-(or `python` for Windows) executable in your path with access to the `venv`
-package. If for any reason the automatic creation of the virtualenv fails,
-you can create the virtualenv manually.
+## Resource Info
 
-To manually create a virtualenv on MacOS and Linux:
+This cdk stack deploys an ec2 instance with the required scraper files, as well as a lambda function to trigger the scraper, and an event to trigger the lambda hourly.
 
-```
-$ python3 -m venv .venv
-```
+## Deployment Instructions
 
-After the init process completes and the virtualenv is created, you can use the following
-step to activate your virtualenv.
+All necessary steps to installing and deploying this scraper. This is all made much simpler when deployed from aws cloud9.
 
-```
-$ source .venv/bin/activate
-```
+### Prerequisites
+- AWS CLI and CDK configured and installed
 
-If you are a Windows platform, you would activate the virtualenv like this:
+### Config
+- open the "scraperstack.py" file
+- change `_BUCKET_` to the appropriate value
+- note the `key` variable, make an ec2 key-pair (.pem) with the same name value, keep the .pem file safe you'll need it later
+- note you may aswell need to make a bucket
 
-```
-% .venv\Scripts\activate.bat
-```
+### Deployment
+- Clone this repo and navigate into it
+- run `pip install -r requirements.txt`
+- run `cdk bootsrap`
+- run `cdk deploy`
 
-Once the virtualenv is activated, you can install the required dependencies.
+### Setup
 
-```
-$ pip install -r requirements.txt
-```
+After the main instance and the supporting infrastructre are deployed we have to set up some files on the ec2 instance
 
-At this point you can now synthesize the CloudFormation template for this code.
-
-```
-$ cdk synth
-```
-
-To add additional dependencies, for example other CDK libraries, just add
-them to your `setup.py` file and rerun the `pip install -r requirements.txt`
-command.
-
-## Useful commands
-
- * `cdk ls`          list all stacks in the app
- * `cdk synth`       emits the synthesized CloudFormation template
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk docs`        open CDK documentation
-
-Enjoy!
+- ssh into the ec2 instance 
+- pip install -r requirements.txt
+- configure aws cli - run `aws configure`
+- optional: run `python3 main.py` (will be invoked every hour regardless)
