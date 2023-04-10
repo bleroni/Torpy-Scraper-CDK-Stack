@@ -6,10 +6,6 @@ This CDK Stack deploys a web scraper on an EC2 instance and a Lambda function th
 
 The scraper script uses TorPy to create a tor-requests connection to check the main article page. It extracts the unique IDs provided by the website and uses those as the identifier in its data-store. After it finds new articles, it stores the number and visits each link through a tor connection. If the tor connection is rate limited or blocked, it will create a new tor connection. When the scraper visits each article, it extracts elements from the page. If any of the extractions fail, it returns false in the data. Upon scraper finish, it stores its data to s3.
 
-## Resource Info
-
-This cdk stack deploys an ec2 instance with the required scraper files, as well as a lambda function to trigger the scraper, and an event to trigger the lambda hourly. The scraper shuts off the instance once finished to save on costs, the lambda functionr re-activates it.
-
 ## Deployment Instructions
 
 All necessary steps to installing and deploying this scraper. This is all made much simpler when deployed from aws cloud9.
