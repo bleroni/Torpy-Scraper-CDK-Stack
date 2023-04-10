@@ -12,7 +12,7 @@ from aws_cdk import (
 from constructs import Construct
 
 _BUCKET_ = 'testbucketq3u4y397' # name of bucket
-key = "test-key" # key name for ec2 instance ssh
+key = "test-key" # key name for ec2 instance ssh, file needs to be in docker
 
 class ScraperstackStack(Stack):
 
@@ -54,39 +54,13 @@ class ScraperstackStack(Stack):
             'sudo yum install -y python38 python38-pip',
             'sudo python3 -m pip install --upgrade pip',
             f'echo "{requirements}" > /home/ec2-user/requirements.txt',
-            
-            f'sudo echo "export BUCKET={_BUCKET_}" >> /etc/profile.d/myenv.sh',
+            f'echo \'_BUCKET_="{_BUCKET_}"\' > /home/ec2-user/config.py',
+
+            'sudo service crond start',
+            'sudo echo "0 * * * * python3 /home/ec2-user/main.py" > /tmp/cronjob',
+            'sudo echo "0 * * * * python3 /home/ec2-user/main.py >> /home/ec2-user/myjob.log 2>&1" > /tmp/cronjob',
+            "crontab /tmp/cronjob",
         )
         
         instance.connections.allow_from_any_ipv4(ec2.Port.tcp(22))
-        instance.connections.allow_from_any_ipv4(ec2.Port.tcp(443))
         bucket.grant_read_write(instance)
-        
-        #define lambda and hourly trigger
-        
-        function = _lambda.DockerImageFunction(self, "ScraperTrigger",
-                code=_lambda.DockerImageCode.from_image_asset(
-                    directory="scraper/lambda"),
-                environment = {
-                    'INSTANCE': instance.instance_id,
-                },
-                timeout=Duration.seconds(30)
-            )
-            
-        rule = events.Rule(self, "run hourly",
-                schedule=events.Schedule.cron(minute="0",
-                                            hour="*",
-                                            week_day="*",
-                                            month="*",
-                                            year="*"
-                )
-            )
-        rule.add_target(targets.LambdaFunction(function))
-        function.add_to_role_policy(iam.PolicyStatement(
-                        actions=['ssm:*',
-                                'ec2:*'],
-                        resources=['*']
-                            )
-            )
-        
-        

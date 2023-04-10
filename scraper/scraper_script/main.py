@@ -11,8 +11,8 @@ from torpy.http.requests import tor_requests_session
 from utils import (
     get_elements
 )
+from config import _BUCKET_
 
-_BUCKET_ = os.environ.get('BUCKET')
 _PATH_TO_DATA_ = 'article_data.json' # s3 object key
 
 _LINK_ = 'https://www.merrjep.com/shpalljet/imobiliare-vendbanime/toke-fusha-farma/lipjan' # link to be scraped
@@ -41,7 +41,7 @@ class Scraper(object):
     def check_pages(self):
         index = 2
         new_articles = []
-        while len(new_articles) < 2000:
+        while (len(new_articles) + len(self.article_data)) < 2000:
             try:
                 with tor_requests_session() as s:
                     for i in range(index, 100):
@@ -52,9 +52,6 @@ class Scraper(object):
                         
                         #find new articles and add them to new_aricles
                         soup = BeautifulSoup(s.get(link).content, 'html.parser')
-                        #listings = soup.find('div', class_='result-content').findAll('script')
-                        #article_nums = [listing.string.split("'")[1] for listing in listings]
-                        #new_articles.extend([num for num in article_nums if num not in self.article_data])
                         new_articles.extend([num for num in [listing.string.split("'")[1] for listing in soup.find('div', class_='result-content').findAll('script')] if num not in self.article_data])
 
                         self.logger.debug(f"{len(new_articles)} new articles")
@@ -93,7 +90,7 @@ class Scraper(object):
 
         self.send_requests(new_articles)
         
-        if len(self.article_data) < 2000:
+        if len(self.article_data) < 1950:
             self.check_pages()
 
 
@@ -178,13 +175,13 @@ class Scraper(object):
         self.close()
         
         
-if __init__ == '__main__':
+if __name__ == '__main__':
     with Scraper(debug=True) as s:
         s.check_site()
     
-    ec2 = boto3.client("ec2")
-    instance_id = requests.get('http://169.254.169.254/latest/meta-data/instance-id').text
-    ec2.stop_instances(InstanceIds=[instance_id])
+    #ec2 = boto3.client("ec2")
+    #instance_id = requests.get('http://169.254.169.254/latest/meta-data/instance-id').text
+    #ec2.stop_instances(InstanceIds=[instance_id])
     
     # I dont think program can run this in time but maybe
-    ec2.close()
+    #ec2.close()

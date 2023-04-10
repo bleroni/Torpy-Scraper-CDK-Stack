@@ -35,6 +35,6 @@ All necessary steps to installing and deploying this scraper. This is all made m
 After the main instance and the supporting infrastructre are deployed we have to set up some files on the ec2 instance
 
 - ssh into the ec2 instance 
-- pip install -r requirements.txt
+- `pip install -r requirements.txt`
 - configure aws cli - run `aws configure`
-- optional: run `python3 main.py` (will be invoked every hour regardless)
+- `crontab /tmp/cronjob`
