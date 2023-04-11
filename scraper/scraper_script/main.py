@@ -96,6 +96,7 @@ class Scraper(object):
 
     def send_requests(self, new_articles):
         #WALRUS USE CASE!! iterates through articles, constantly removing checked articles, terminates loop when articles is empty (all articles checked)
+        # this is needed instead of usual for loop, becuase when the connection inevitably fails and the exception is caught, it needs to keep running, hence while loop
         while (articles := [article for article in new_articles if article not in self.article_data]): 
             self.logger.debug(f"articles: {articles}")
             try:
@@ -131,7 +132,7 @@ class Scraper(object):
             res = s3.get_object(Bucket=_BUCKET_, Key=_PATH_TO_DATA_)
             self.article_data = json.loads(res['Body'].read().decode('utf-8'))
             
-        # upon first launch
+        # upon first launch, object wont be there
         except botocore.exceptions.ClientError as error:
             self.logger.debug(error)
             self.article_data = {}
@@ -178,10 +179,3 @@ class Scraper(object):
 if __name__ == '__main__':
     with Scraper(debug=True) as s:
         s.check_site()
-    
-    #ec2 = boto3.client("ec2")
-    #instance_id = requests.get('http://169.254.169.254/latest/meta-data/instance-id').text
-    #ec2.stop_instances(InstanceIds=[instance_id])
-    
-    # I dont think program can run this in time but maybe
-    #ec2.close()
