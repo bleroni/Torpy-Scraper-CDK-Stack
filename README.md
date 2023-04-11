@@ -1,4 +1,4 @@
-# CDK Stack for Web Scraper on EC2 with Lambda Function Trigger
+# CDK Stack for Web Scraper on EC2
 
 This CDK Stack deploys a web scraper on an EC2 instance and a Lambda function that triggers the script every hour using an EventBridge trigger. The scraper script is written in Python and uses the TorPy library for anonymity.
 
