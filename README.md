@@ -2,6 +2,20 @@
 
 This CDK Stack deploys a web scraper on an EC2 instance and a Lambda function that triggers the script every hour using an EventBridge trigger. The scraper script is written in Python and uses the TorPy library for anonymity.
 
+# Job Description
+
+Simple website with no captcha-s.
+
+Initially, 40 paginated pages that contain articles/listings have to be scraped, which contain about 2,000 articles/listings. After this, the script should check every hour for new articles.
+
+This website publishes many times duplicated articles/listings, so the script has to check if the "new" article has already been scraped before.
+
+Also, in case the data fields cannot be extracted from an article/listing, this has to be tracked somehow.
+
+One technical issue that I have noticed is that when you click on a link in the website, sometimes it can remain on "loading" state and you cannot click other links. However, this is always resolved with a simple page reload.
+
+All relevant data have to be saved on a AWS S3 bucket as JSON. However, I would be open to other suggestions, if they are more robust/efficient.
+
 ## Scraper Script
 
 The scraper script uses TorPy to create a tor-requests connection to check the main article page. It extracts the unique IDs provided by the website and uses those as the identifier in its data-store. After it finds new articles, it stores the number and visits each link through a tor connection. If the tor connection is rate limited or blocked, it will create a new tor connection. When the scraper visits each article, it extracts elements from the page. If any of the extractions fail, it returns false in the data. Upon scraper finish, it stores its data to s3.
