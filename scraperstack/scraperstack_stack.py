@@ -25,8 +25,8 @@ class ScraperstackStack(Stack):
             nat_gateways=1
             )
             
-        ast1 = s3_assets.Asset(self, "main_asset", path="scraper/scraper_script/main.py")
-        ast2 = s3_assets.Asset(self, "utils_asset", path="scraper/scraper_script/utils.py")
+        ast1 = s3_assets.Asset(self, "main_asset", path="scraper_script/main.py")
+        ast2 = s3_assets.Asset(self, "utils_asset", path="scraper_script/utils.py")
         
         init = ec2.CloudFormationInit.from_elements(
             ec2.InitFile.from_existing_asset("/home/ec2-user/main.py", ast1),
