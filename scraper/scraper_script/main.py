@@ -38,13 +38,26 @@ class Scraper(object):
         # upon instantiation, get data from s3
         self.get_data()
 
-    def check_pages(self):
+
+    def main(self):
+        #check for new articles
+        if self.article_data:
+            new_articles = self.check_site()
+        else:
+            #if first time, scrape first 2000 results
+            new_articles = self.check_pages(50)
+        
+        #send requests to new articles
+        self.send_requests(new_articles)
+
+
+    def check_pages(self, pages):
         index = 2
         new_articles = []
         while (len(new_articles) + len(self.article_data)) < 2000:
             try:
                 with tor_requests_session() as s:
-                    for i in range(index, 100):
+                    for i in range(index, pages):
                         if len(new_articles) >= 2000:
                             break
 
@@ -60,7 +73,7 @@ class Scraper(object):
                 # picks up where left off if failure
                 index = i
         
-        self.send_requests(new_articles)
+        return new_articles
             
             
     def check_site(self):
@@ -88,12 +101,12 @@ class Scraper(object):
         # get articles not in data (new articles)
         new_articles = [num for num in article_nums if num not in self.article_data]
 
-        self.send_requests(new_articles)
+        #check first 3 pages for new articles
+        self.check_pages(3)
+
+        return new_articles
         
-        if len(self.article_data) < 1950:
-            self.check_pages()
-
-
+        
     def send_requests(self, new_articles):
         #WALRUS USE CASE!! iterates through articles, constantly removing checked articles, terminates loop when articles is empty (all articles checked)
         # this is needed instead of usual for loop, becuase when the connection inevitably fails and the exception is caught, it needs to keep running, hence while loop
@@ -138,8 +151,6 @@ class Scraper(object):
             self.article_data = {}
         
         s3.close()
-
-        return 
 
 
     def storeData(self):
