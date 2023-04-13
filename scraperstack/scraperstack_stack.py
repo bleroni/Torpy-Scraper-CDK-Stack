@@ -45,7 +45,7 @@ class ScraperstackStack(Stack):
             init=init
         )
         
-        with open("scraper/scraper_script/requirements.txt", 'r') as f:
+        with open("scraper_script/requirements.txt", 'r') as f:
             requirements = f.read()
             
         instance.user_data.add_commands(
