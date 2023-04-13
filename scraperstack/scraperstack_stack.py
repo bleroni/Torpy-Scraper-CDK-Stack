@@ -60,6 +60,7 @@ class ScraperstackStack(Stack):
             'sudo echo "0 * * * * python3 /home/ec2-user/main.py" > /tmp/cronjob',
             'sudo echo "0 * * * * python3 /home/ec2-user/main.py >> /home/ec2-user/myjob.log 2>&1" > /tmp/cronjob',
             "crontab /tmp/cronjob",
+            "pip install -r requirements.txt",
         )
         
         instance.connections.allow_from_any_ipv4(ec2.Port.tcp(22))
