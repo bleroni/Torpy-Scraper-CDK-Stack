@@ -11,7 +11,8 @@ from torpy.http.requests import tor_requests_session
 from utils import (
     get_elements
 )
-from config import _BUCKET_
+
+_BUCKET_ = 'testbucketq3u4y397'
 
 _PATH_TO_DATA_ = 'article_data.json' # s3 object key
 
@@ -23,8 +24,6 @@ logger = logging.getLogger(__name__)
 
 f1 = '/home/ec2-user/.local/share/torpy/network_status'
 f2 = '/home/ec2-user/.local/share/torpy/dir_key_certificates'
-
-from time import sleep
 
 class Scraper(object):
 
@@ -46,6 +45,7 @@ class Scraper(object):
         else:
             #if first time, scrape first 2000 results
             new_articles = self.check_pages(50)
+            new_articles.extend(self.check_site())
         
         #send requests to new articles
         self.send_requests(new_articles)
@@ -54,7 +54,7 @@ class Scraper(object):
     def check_pages(self, pages):
         index = 2
         new_articles = []
-        while (len(new_articles) + len(self.article_data)) < 2000:
+        while index < pages:
             try:
                 with tor_requests_session() as s:
                     for i in range(index, pages):
@@ -108,6 +108,7 @@ class Scraper(object):
         
         
     def send_requests(self, new_articles):
+        print("running")
         #WALRUS USE CASE!! iterates through articles, constantly removing checked articles, terminates loop when articles is empty (all articles checked)
         # this is needed instead of usual for loop, becuase when the connection inevitably fails and the exception is caught, it needs to keep running, hence while loop
         while (articles := [article for article in new_articles if article not in self.article_data]): 
@@ -186,7 +187,11 @@ class Scraper(object):
             print(traceback)
         self.close()
         
-        
+from time import time
 if __name__ == '__main__':
+    t1 = time()
     with Scraper(debug=True) as s:
-        s.check_site()
+        s.main()
+    t2=time()
+
+    print(t2-t1)
