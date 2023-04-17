@@ -43,3 +43,7 @@ def get_elements(soup): #html = bs(res.content)
     ret["timestamp"] = time()
 
     return ret
+
+def check_dup(title, data):
+    stored_titles = [data[urn]["title"] for urn in data]
+    return title in stored_titles
