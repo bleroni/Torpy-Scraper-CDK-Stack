@@ -13,7 +13,7 @@ from utils import (
     check_dup
 )
 
-from config import _BUCKET_
+_BUCKET_ = 'testbucketq3u4y397'
 
 _PATH_TO_DATA_ = 'article_data.json' # s3 object key
 
@@ -114,11 +114,19 @@ class Scraper(object):
     def send_requests(self, new_articles):
         #WALRUS USE CASE!! iterates through articles, constantly removing checked articles, terminates loop when articles is empty (all articles checked)
         # this is needed instead of usual for loop, becuase when the connection inevitably fails and the exception is caught, it needs to keep running, hence while loop
+        article_temp = ''
         while (articles := [article for article in new_articles if article not in self.article_data]): 
             self.logger.debug(f"articles: {articles}")
+
             try:
                 with tor_requests_session() as s: # try to get as many requests as possible out of one session, loading takes considerable time
                     for article in articles:
+
+                        if article_temp == article:
+                            #Problem with this article, doesnt exist/taken down
+                            new_articles.pop(article)
+
+                        article_temp = article
     
                         link = _ARTICLE_LINK_.format(article)
                     
