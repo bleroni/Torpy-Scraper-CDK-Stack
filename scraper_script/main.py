@@ -9,10 +9,11 @@ import os
 from torpy.http.requests import tor_requests_session
 
 from utils import (
-    get_elements
+    get_elements,
+    check_dup
 )
 
-_BUCKET_ = 'testbucketq3u4y397'
+from config import _BUCKET_
 
 _PATH_TO_DATA_ = 'article_data.json' # s3 object key
 
@@ -42,6 +43,7 @@ class Scraper(object):
         #check for new articles
         if self.article_data:
             new_articles = self.check_site()
+            #new_articles = self.check_pages(50) #scrape site + x amount of pages
         else:
             #if first time, scrape first 2000 results
             new_articles = self.check_pages(50)
@@ -55,23 +57,25 @@ class Scraper(object):
         index = 2
         new_articles = []
         while index < pages:
+            self.logger.debug(f"index: {index}")
             try:
                 with tor_requests_session() as s:
-                    for i in range(index, pages):
-                        if len(new_articles) >= 2000:
-                            break
+                    link = _PAGE_LINK_.format(index)
+                    res = s.get(link)
 
-                        link = _PAGE_LINK_.format(i)
-                        
-                        #find new articles and add them to new_aricles
-                        soup = BeautifulSoup(s.get(link).content, 'html.parser')
-                        new_articles.extend([num for num in [listing.string.split("'")[1] for listing in soup.find('div', class_='result-content').findAll('script')] if num not in self.article_data])
+                    if res.status_code != 200:
+                        self.logger.debug("Session Failed... Restarting")
+                        break
+                    index+=1
 
-                        self.logger.debug(f"{len(new_articles)} new articles")
+                    #find new articles and add them to new_aricles
+                    soup = BeautifulSoup(res.content, 'html.parser')
+                    new_articles.extend([num for num in [listing.string.split("'")[1] for listing in soup.find('div', class_='result-content').findAll('script')] if num not in self.article_data])
+
+                    self.logger.debug(f"{len(new_articles)} new articles")
                         
             except (torpy.circuit.CellTimeoutError, requests.exceptions.ConnectTimeout):
-                # picks up where left off if failure
-                index = i
+                pass
         
         return new_articles
             
@@ -108,15 +112,12 @@ class Scraper(object):
         
         
     def send_requests(self, new_articles):
-        print("running")
         #WALRUS USE CASE!! iterates through articles, constantly removing checked articles, terminates loop when articles is empty (all articles checked)
         # this is needed instead of usual for loop, becuase when the connection inevitably fails and the exception is caught, it needs to keep running, hence while loop
         while (articles := [article for article in new_articles if article not in self.article_data]): 
             self.logger.debug(f"articles: {articles}")
             try:
                 with tor_requests_session() as s: # try to get as many requests as possible out of one session, loading takes considerable time
-                    self.logger.debug("Runngins")
-                    
                     for article in articles:
     
                         link = _ARTICLE_LINK_.format(article)
@@ -124,8 +125,13 @@ class Scraper(object):
                         self.logger.info(f"Trying {article}")
                         
                         res = s.get(link)
-                        self.article_data[article] = get_elements(BeautifulSoup(res.content, 'html.parser'))
-                        self.logger.debug(f"{article}: {res.status_code}") # debugging
+                        elements = get_elements(BeautifulSoup(res.content, 'html.parser'))
+
+                        title = elements["title"]
+                        if not check_dup(title, self.article_data):
+                            self.article_data[article] = elements
+                        else:
+                            self.logger.debug(f"Duplicate: '{title}'") # debugging
                         
                         if res.status_code != 200: # if connection is blocked, make new connections
                             self.logger.debug("Session Failed... Restarting")
