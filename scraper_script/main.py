@@ -43,7 +43,7 @@ class Scraper(object):
         #check for new articles
         if self.article_data:
             new_articles = self.check_site()
-            new_articles = self.check_pages(6) #scrape site + x amount of pages
+            new_articles = self.check_pages(5) #scrape site + x amount of pages
         else:
             #if first time, scrape first 2000 results
             new_articles = self.check_pages(50)
