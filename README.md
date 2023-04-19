@@ -1,22 +1,3 @@
-# Bleron notes
-https://github.com/Asilomare/Torpy-Scraper-CDK-Stack
-git clone https://github.com/Asilomare/Torpy-Scraper-CDK-Stack/blob/main/scraper_script/main.py
-Harrison Oliver
-5:22 PM
-git clone https://github.com/Asilomare/Torpy-Scraper-CDK-Stack
-cd Torpy-Scraper-CDK-Stack
-
-
-pip install requirements.txt
-crontab /tmp/cronjob
-
-cdk deploy
-
-
-In Cloud9, create the key pair for the EC2 instance
-
-# End of Bleron notes
-
 # CDK Stack for Web Scraper on EC2
 
 This CDK Stack deploys a web scraper on an EC2 instance and a Lambda function that triggers the script every hour using an EventBridge trigger. The scraper script is written in Python and uses the TorPy library for anonymity.
